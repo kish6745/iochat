@@ -1,0 +1,20 @@
+{
+  "name": "iochat",
+  "version": "1.0.0",
+  "description": "simple chat app using tcp sockets",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kislay Kumar",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^4.2.1",
+    "express": "*",
+    "mongodb": "^3.1.13",
+    "nodemon": "^1.18.9",
+    "socket.io": "*",
+    "underscore": "^1.9.1"
+  }
+}

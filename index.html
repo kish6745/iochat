@@ -1,0 +1,166 @@
+<html>
+    <head>
+        <title>
+            IOChat
+        </title>
+        <!-- Jquery CDN -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        
+        <!-- Socket.io library file -->
+        <script src="/socket.io/socket.io.js"></script>
+
+        <style>
+            body{
+                margin-top:30px;
+            }
+            #messageArea{
+                display:none;
+            }
+        </style>
+
+    </head>
+<body>
+
+    <!--Header of application-->
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1>Chat App<br></h1>
+        </div>
+    </div>
+
+    <!--Webpage container-->
+    <div class="container">
+
+        <!-- User Registration Area-->
+        <div id="userFormArea" class="row">
+            <div class="col-md-12">
+                <form id="userForm">
+                    <div class="form-group">
+                        <label>Enter Username</label>
+                        <input class="form-control" id="username">
+                        <br>
+                        <input type="submit" class="btn btn-danger" value="login">
+                    </div>
+                </form>
+            </div>
+        </div>
+         
+        <!--Message Area-->
+        <div id="messageArea" class="row">
+                <div class="container">    
+                        <span class="navbar-brand text-warning" style="font-size:30px;">Welcome </span>
+                  
+                        <p id="owner"></p>
+                </div>
+
+            <!--Online Users Area-->
+            <div class="col-md-4">
+                <div class=" well pre-scrollable" style=" height:200px; overflow:auto;">
+                    <div id="currentUser"></div>
+                    <!--This section will display total connected users-->
+                    <h3 id="totalConnectedUsers"></h3>
+                    <ul class="list-group" id="users"></ul>
+                    <!--This section will display total disconnected users-->
+                    <h3 id="totalDisconnectedUsers"></h3>
+                    <ul class="list-group" id="discUsers"></ul>
+                </div>
+            </div>
+            
+            <!--Message display area-->
+            <div class="col-md-8">
+                <!--Message display division-->
+                <div class=" chat-window pre-scrollable col-md-8" style="overflow:auto; height:200px; width:600px;"  data-text="Your message goes here...">
+                    <div class="chat" id="chat" ></div>
+                </div>
+                <br><br><br><br><br><br><br><br><br><br>
+                    <!--Enter message dialog box-->
+                    <form id="messageForm">
+                        <br>
+                    <textarea class="form-control" id="message" placeholder="Enter your message here"></textarea>
+                    <br>
+                    <input type="submit" class="btn btn-primary" value="sendMessage">
+                </form>
+            </div>
+        </div>        
+    </div>
+
+    <!-- jQuery part to comunicate with node server-->
+    <script>
+        $(function(){
+            var socket=io.connect();
+            var $messageForm=$('#messageForm');
+            var $message=$('#message');
+            var $chat=$('#chat');
+            var $currentUser=$('#currentUser');
+            var $userFormArea=$('#userFormArea');
+            var $userForm=$('#userForm');
+            var $messageArea=$('#messageArea');
+            var $users=$('#users');
+            var $username=$('#username');
+            var $discUsers=$('#discUsers');
+            var $owner=$('#owner');
+            
+            //When message is submitted by any user
+            $messageForm.submit(function(e){
+                e.preventDefault();
+                console.log("Submitted!!");//Message "submitted" on user's console for confirmation.
+                socket.emit('sendMessage',$message.val());
+                $message.val('');//Emptying message variable for next message.
+            });
+               
+            //Display logic=> to add message on screen
+            socket.on('newMessage',function(data){
+                $chat.append('<div class="well"><strong>'+data.user+'</strong>: '+data.msg+'</div>');
+            });
+
+
+            //When user submits userForm, or registration form
+            $userForm.submit(function(e){
+                e.preventDefault();
+                //Call newUser listner on server.
+                socket.emit('newUser',$username.val(),function(data){
+                    console.log($username.val());
+                    if(data){
+                        $userFormArea.hide();//When reg. is success, hide userFormArea, 
+                        $messageArea.show();// and display chat window, or messageArea.
+                        document.getElementById("owner").innerHTML = $username;
+                    }
+                });
+                $username.val('');//Clear username for next entries.
+            });
+            
+            //getUsers listner,to display online and recently online users.
+            socket.on('getUsers',function(datac,datad,totalConnectedUsers){
+                
+                //Display online users list.
+                document.getElementById("totalConnectedUsers").innerHTML="Users online: "+totalConnectedUsers;
+                var htmlo='';//htmlo stands for "html for online" users.
+                for(i=0;i<datac.length;i++){
+                    htmlo+='<li class="list-group-item">'+datac[i]+'</li>';
+                }
+                $users.html(htmlo);
+
+                //Display recently online users.
+                document.getElementById("totalDisconnectedUsers").innerHTML="Recently seen:";
+                var htmld='';//htmld stands for html for disconnected users.
+                for(i=0;i<datad.length;i++){
+                    htmld+='<li class="list-group-item">'+datad[i]+'</li>';
+                }
+                $discUsers.html(htmld);
+            
+            });
+        
+        });
+
+    </script>
+</body>
+</html>
